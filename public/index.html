@@ -1,40 +1,97 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r123/three.min.js"></script>
-</head>
-<body>
-    <div id="container"></div>
-    <script type="module">
-      const start = async() => {
-        const response = await fetch('mapping.json');
-        const mapping = await response.json();
-        const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-          container: document.querySelector("#container"),
-          imageTargetSrc: './students.mind',
-        });
-        const {renderer, scene, camera} = mindarThree;
-        mapping.forEach((item, index) => {
-          const video = document.createElement("video");
-          video.src = item.video;
-          video.loop = true;
-          video.crossOrigin = "anonymous";
-          video.setAttribute('playsinline', '');
-          const texture = new THREE.VideoTexture(video);
-          const geometry = new THREE.PlaneGeometry(1, 1);
-          const material = new THREE.MeshBasicMaterial({map: texture});
-          const plane = new THREE.Mesh(geometry, material);
-          const anchor = mindarThree.addAnchor(index);
-          anchor.group.add(plane);
-          anchor.onTargetFound = () => video.play();
-          anchor.onTargetLost = () => video.pause();
-        });
-        await mindarThree.start();
-        renderer.setAnimationLoop(() => renderer.render(scene, camera));
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      body { margin: 0; overflow: hidden; }
+      /* Yuklanish vaqti uchun qora ekran */
+      #scanning-overlay {
+        display: none;
+        position: absolute; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 2;
       }
-      window.addEventListener('click', () => { start(); }, {once: true});
+    </style>
+  </head>
+  <body>
+    <a-scene 
+      mindar-image="imageTargetSrc: ./students.mind; autoStart: false; uiScanning: #scanning-overlay;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets id="assets-container">
+        </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+
+      </a-scene>
+
+    <div id="scanning-overlay"></div>
+
+    <script>
+      const startAR = async () => {
+        const sceneEl = document.querySelector('a-scene');
+        const assetsEl = document.querySelector('#assets-container');
+        
+        try {
+          // mapping.json faylini o'qish
+          const response = await fetch('mapping.json');
+          const mapping = await response.json();
+
+          mapping.forEach((item, index) => {
+            // 1. Video elementini yaratish
+            const video = document.createElement("video");
+            video.setAttribute("id", `vid-${index}`);
+            video.setAttribute("src", item.video);
+            video.setAttribute("loop", "true");
+            video.setAttribute("crossorigin", "anonymous");
+            video.setAttribute("playsinline", "");
+            video.setAttribute("webkit-playsinline", "");
+            assetsEl.appendChild(video);
+
+            // 2. AR Anchor (Target) yaratish
+            const entity = document.createElement("a-entity");
+            entity.setAttribute("mindar-image-target", `targetIndex: ${index}`);
+            
+            // 3. Videoni ko'rsatuvchi Plane (Tekislik)
+            const plane = document.createElement("a-video");
+            plane.setAttribute("src", `#vid-${index}`);
+            plane.setAttribute("position", "0 0 0");
+            plane.setAttribute("height", "0.55"); // O'lchamini rasmga moslang
+            plane.setAttribute("width", "1");
+            plane.setAttribute("rotation", "0 0 0");
+            
+            entity.appendChild(plane);
+            sceneEl.appendChild(entity);
+
+            // 4. Voqealarni boshqarish (Play/Pause)
+            entity.addEventListener("targetFound", () => {
+              console.log("Target topildi:", index);
+              video.play();
+            });
+            entity.addEventListener("targetLost", () => {
+              video.pause();
+            });
+          });
+
+          // AR tizimini ishga tushirish
+          const {systems} = sceneEl;
+          systems['mindar-image-system'].start(); 
+
+        } catch (err) {
+          console.error("Xatolik yuz berdi:", err);
+        }
+      };
+
+      // Ekranga bir marta bosganda AR ishga tushadi
+      window.addEventListener('click', () => {
+        startAR();
+      }, {once: true});
     </script>
-</body>
+  </body>
 </html>
