@@ -1,10 +1,3 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/", "destination": "/public/index.html" },
-    { "source": "/assets/(.*)", "destination": "/public/assets/$1" },
-    { "source": "/(.*).mind", "destination": "/public/$1.mind" },
-    { "source": "/mapping.json", "destination": "/public/mapping.json" },
-    { "source": "/(.*)", "destination": "/public/$1" }
-  ]
+  "cleanUrls": true
 }
