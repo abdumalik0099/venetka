@@ -8,52 +8,44 @@
 
     <style>
       body { margin: 0; overflow: hidden; }
-      #scanning-overlay {
-        display: none;
-        position: absolute; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5); z-index: 2;
-      }
+      /* Scanning animatsiyasi */
+      .mindar-ui-scanning { display: block !important; }
     </style>
   </head>
   <body>
     <a-scene 
-      mindar-image="imageTargetSrc: ./students.mind; autoStart: false; uiScanning: #scanning-overlay;" 
+      mindar-image="imageTargetSrc: ./students.mind; autoStart: true;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
+      device-orientation-permission-ui="enabled: true">
       
       <a-assets id="assets-container"></a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     </a-scene>
 
-    <div id="scanning-overlay"></div>
-
     <script>
-      const startAR = async () => {
+      const loadAR = async () => {
         const sceneEl = document.querySelector('a-scene');
         const assetsEl = document.querySelector('#assets-container');
         
         try {
-          // 2. BU YERDA: mapping.json bo'lishi kerak
           const response = await fetch('./mapping.json');
           const mapping = await response.json();
 
           mapping.forEach((item, index) => {
+            // Video yaratish
             const video = document.createElement("video");
             video.setAttribute("id", `vid-${index}`);
-            
-            // 3. DIQQAT: Agar mapping.json ichida video yo'li "public/assets/..." bo'lsa, 
-            // uni "assets/..." qilib o'zgartirish kerak!
-            video.setAttribute("src", item.video); 
-            
+            video.setAttribute("src", item.video);
             video.setAttribute("loop", "true");
             video.setAttribute("crossorigin", "anonymous");
             video.setAttribute("playsinline", "");
             video.setAttribute("webkit-playsinline", "");
             assetsEl.appendChild(video);
 
+            // Anchor yaratish
             const entity = document.createElement("a-entity");
             entity.setAttribute("mindar-image-target", `targetIndex: ${index}`);
             
@@ -66,25 +58,16 @@
             entity.appendChild(plane);
             sceneEl.appendChild(entity);
 
-            entity.addEventListener("targetFound", () => {
-              video.play();
-            });
-            entity.addEventListener("targetLost", () => {
-              video.pause();
-            });
+            entity.addEventListener("targetFound", () => video.play());
+            entity.addEventListener("targetLost", () => video.pause());
           });
-
-          const {systems} = sceneEl;
-          systems['mindar-image-system'].start(); 
-
         } catch (err) {
-          console.error("Xatolik:", err);
+          console.error("Xato:", err);
         }
       };
 
-      window.addEventListener('click', () => {
-        startAR();
-      }, {once: true});
+      // Sahifa yuklanishi bilan ishga tushadi
+      document.addEventListener('DOMContentLoaded', loadAR);
     </script>
   </body>
 </html>
