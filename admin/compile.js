@@ -6,9 +6,10 @@ const compileImages = async () => {
   const compiler = new OfflineCompiler();
   // Rasmlar nomini bu erda tartib bilan yozing
   const imageFiles = [
-    'admin/source_images/0.jpg',
-    'admin/source_images/1.jpg'
-  ];
+  'admin/source_images/0.jpg', // 1-rasm (index: 0)
+  'admin/source_images/1.jpg', // 2-rasm (index: 1)
+  'admin/source_images/2.jpg'  // 3-rasm (index: 2)
+];
 
   const images = [];
   for (const file of imageFiles) {
