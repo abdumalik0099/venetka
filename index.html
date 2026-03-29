@@ -8,34 +8,26 @@
 
     <style>
       body { margin: 0; overflow: hidden; }
-      /* MindAR yuklanish va skanerlash interfeyslarini yashirish */
-      .mindar-ui-overlay { display: none !important; }
+      /* Scanning animatsiyasi */
       .mindar-ui-scanning { display: none !important; }
       .a-enter-vr { display: none !important; }
     </style>
   </head>
   <body>
     <a-scene 
-      mindar-image="imageTargetSrc: ./students.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
+      mindar-image="imageTargetSrc: ./students.mind; autoStart: true;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
+      device-orientation-permission-ui="enabled: true">
       
       <a-assets id="assets-container"></a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     </a-scene>
 
-    <script>
+<script>
       const loadAR = async () => {
-        // 2. DARXOL RUXSAT SO'RASH: Sayt ochilishi bilan kamerani so'raydi
-        try {
-          await navigator.mediaDevices.getUserMedia({ video: true });
-        } catch (err) {
-          console.warn("Kamera ruxsati rad etildi yoki xato:", err);
-        }
-
         const sceneEl = document.querySelector('a-scene');
         const assetsEl = document.querySelector('#assets-container');
         
@@ -44,7 +36,7 @@
           const mapping = await response.json();
 
           mapping.forEach((item, index) => {
-            // Video yaratish
+            // 1. Video yaratish
             const video = document.createElement("video");
             video.setAttribute("id", `vid-${index}`);
             video.setAttribute("src", item.video);
@@ -52,10 +44,10 @@
             video.setAttribute("crossorigin", "anonymous");
             video.setAttribute("playsinline", "");
             video.setAttribute("webkit-playsinline", "");
-            video.muted = true; 
+            video.muted = true; // Avtoplay ishlashi uchun shart
             assetsEl.appendChild(video);
 
-            // Anchor yaratish
+            // 2. Anchor (Marker) yaratish
             const entity = document.createElement("a-entity");
             entity.setAttribute("mindar-image-target", `targetIndex: ${index}`);
             
@@ -63,25 +55,34 @@
             plane.setAttribute("src", `#vid-${index}`);
             plane.setAttribute("position", "0 0 0");
             
-            // Rasmni to'liq yopishi uchun 1x1 o'lcham
-            plane.setAttribute("width", "1");
-            plane.setAttribute("height", "1");
-            
+            // 3. ENI VA BO'YINI AVTOMATIK MOSLASH
+            video.addEventListener('loadedmetadata', () => {
+              const vWidth = video.videoWidth;
+              const vHeight = video.videoHeight;
+              
+              // Kenglikni 1 deb olamiz, balandlikni esa proportsiyaga ko'ra hisoblaymiz
+              const aspectHeight = vHeight / vWidth;
+              
+              plane.setAttribute("width", "1");
+              plane.setAttribute("height", "1");
+            });
+
             entity.appendChild(plane);
             sceneEl.appendChild(entity);
 
-            // Target topilganda videoni qo'yish
+            // 4. Video boshqaruvi
             entity.addEventListener("targetFound", () => {
-                video.play().catch(e => console.error("Play error:", e));
+              video.play().catch(err => console.log("Play xatosi:", err));
             });
-            entity.addEventListener("targetLost", () => video.pause());
+            entity.addEventListener("targetLost", () => {
+              video.pause();
+            });
           });
         } catch (err) {
           console.error("Xato:", err);
         }
       };
 
-      // Sahifa yuklanishi bilan ishga tushadi
       document.addEventListener('DOMContentLoaded', loadAR);
     </script>
   </body>
