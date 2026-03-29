@@ -7,27 +7,168 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      body { margin: 0; overflow: hidden; }
-      /* Scanning animatsiyasi */
-      .mindar-ui-scanning { display: none !important; }
-      .a-enter-vr { display: none !important; }
+      body { margin: 0; overflow: hidden; font-family: 'Poppins', sans-serif; background: #000; }
+      
+      /* --- PREMIUM YUKLANISH EKRANI (UX) --- */
+      #custom-loader {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        /* To'q, futuristik fon */
+        background: radial-gradient(circle at center, #1a1a40 0%, #000000 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); /* Silliq yo'qolish */
+      }
+
+      /* Markaziy kontener */
+      .loader-content {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 200px;
+        height: 200px;
+      }
+
+      /* Aylanuvchi futuristik halqalar */
+      .ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        animation: rotate 4s linear infinite;
+      }
+
+      .ring-1 {
+        width: 100%; height: 100%;
+        border-top-color: #00f2fe; /* Neon feruza */
+        border-bottom-color: #00f2fe;
+        animation-duration: 2s;
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+      }
+
+      .ring-2 {
+        width: 80%; height: 80%;
+        border-left-color: #4facfe; /* Neon ko'k */
+        border-right-color: #4facfe;
+        animation-duration: 3s;
+        animation-direction: reverse;
+        box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+      }
+
+      .ring-3 {
+        width: 60%; height: 60%;
+        border-top-color: #fff; /* Oq urf */
+        border-bottom-color: #fff;
+        animation-duration: 1.5s;
+        opacity: 0.5;
+      }
+
+      /* Markaziy yozuv (11 "M") */
+      .class-name {
+        font-size: 48px;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 5px;
+        position: relative;
+        z-index: 10;
+        /* Neon nur effekti */
+        text-shadow: 
+          0 0 10px #fff,
+          0 0 20px #fff,
+          0 0 30px #4facfe,
+          0 0 40px #4facfe,
+          0 0 70px #4facfe;
+        animation: textPulse 1.5s ease-in-out infinite alternate;
+      }
+
+      /* Ostki matn */
+      .loader-text {
+        color: #888;
+        font-size: 12px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-top: 30px;
+        position: relative;
+      }
+
+      /* Matn yuklanish animatsiyasi (...) */
+      .loader-text::after {
+        content: '...';
+        position: absolute;
+        width: 0;
+        overflow: hidden;
+        animation: dots 1.5s steps(4, end) infinite;
+      }
+
+      /* --- ANIMATSIYALAR --- */
+      @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      @keyframes textPulse {
+        from { transform: scale(1); opacity: 0.8; text-shadow: 0 0 10px #fff, 0 0 20px #4facfe; }
+        to { transform: scale(1.05); opacity: 1; text-shadow: 0 0 15px #fff, 0 0 30px #4facfe, 0 0 50px #4facfe; }
+      }
+
+      @keyframes dots {
+        to { width: 1.25em; }
+      }
+
+      /* MindAR va A-Frame interfeyslarini yashirish */
+      .mindar-ui-overlay, .mindar-ui-scanning, .a-enter-vr { display: none !important; }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
   </head>
   <body>
+
+    <div id="custom-loader">
+      <div class="loader-content">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="class-name"></div>
+      </div>
+      <div class="loader-text"></div>
+    </div>
+
     <a-scene 
-      mindar-image="imageTargetSrc: ./students.mind; autoStart: true;" 
+      mindar-image="imageTargetSrc: ./students.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: true">
+      device-orientation-permission-ui="enabled: false">
       
       <a-assets id="assets-container"></a-assets>
-
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     </a-scene>
 
-    <script>
+<script>
       const loadAR = async () => {
+        const loader = document.querySelector('#custom-loader');
+        
+        try {
+          // 1. Kamera ruxsatini so'rash
+          await navigator.mediaDevices.getUserMedia({ video: true });
+          
+          // 2. Ruxsat berilishi bilan animatsiyani darhol yo'qotish
+          loader.style.opacity = '0';
+          setTimeout(() => {
+            loader.style.display = 'none';
+          }, 10); // Silliq yo'qolishi uchun transition vaqti
+
+        } catch (err) {
+          // Agar foydalanuvchi "Otmena" (rad etish) bossa
+          document.querySelector('.loader-text').innerText = "Kameraga ruxsat berilmadi!";
+          document.querySelector('.loader-text').style.color = "#ff4757";
+          console.warn("Kamera xatosi:", err);
+          return; // Xato bo'lsa AR qismini yuklamaymiz
+        }
+
         const sceneEl = document.querySelector('a-scene');
         const assetsEl = document.querySelector('#assets-container');
         
@@ -36,7 +177,6 @@
           const mapping = await response.json();
 
           mapping.forEach((item, index) => {
-            // Video yaratish
             const video = document.createElement("video");
             video.setAttribute("id", `vid-${index}`);
             video.setAttribute("src", item.video);
@@ -44,17 +184,17 @@
             video.setAttribute("crossorigin", "anonymous");
             video.setAttribute("playsinline", "");
             video.setAttribute("webkit-playsinline", "");
+            video.muted = true; 
             assetsEl.appendChild(video);
 
-            // Anchor yaratish
             const entity = document.createElement("a-entity");
             entity.setAttribute("mindar-image-target", `targetIndex: ${index}`);
             
             const plane = document.createElement("a-video");
             plane.setAttribute("src", `#vid-${index}`);
             plane.setAttribute("position", "0 0 0");
-            plane.setAttribute("height", "0.55"); 
             plane.setAttribute("width", "1");
+            plane.setAttribute("height", "1");
             
             entity.appendChild(plane);
             sceneEl.appendChild(entity);
@@ -63,11 +203,10 @@
             entity.addEventListener("targetLost", () => video.pause());
           });
         } catch (err) {
-          console.error("Xato:", err);
+          console.error("Mapping yuklashda xato:", err);
         }
       };
 
-      // Sahifa yuklanishi bilan ishga tushadi
       document.addEventListener('DOMContentLoaded', loadAR);
     </script>
   </body>
