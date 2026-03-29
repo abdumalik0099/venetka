@@ -51,12 +51,14 @@
       }
 
       .start-btn {
-        padding: 10px 25px;
-        border: 2px solid #000;
-        background: transparent;
+        padding: 12px 30px;
+        border: 3px solid #000;
+        background: #000;
+        color: #fff;
         font-weight: bold;
         letter-spacing: 2px;
         text-transform: uppercase;
+        cursor: pointer;
       }
 
       .mindar-ui-scanning, .a-enter-vr { display: none !important; }
@@ -84,17 +86,17 @@
 
     <script>
       let videos = [];
+      let currentlyPlayingVideo = null;
 
-      // Ekranni bossa ovoz ishlaydi va animatsiya yo'qoladi
+      // Tugma bosilganda hamma videolarni ovozini ochamiz
       function startExperience() {
         const loader = document.querySelector('#custom-loader');
         loader.style.opacity = '0';
         setTimeout(() => loader.style.display = 'none', 600);
         
-        // Hamma videolarni ovozini yoqishga ruxsat olish
         videos.forEach(v => {
-          v.muted = false;
-          v.play().then(() => v.pause()); // Brauzerni "aldash"
+          v.muted = false; // Ovozni yoqish
+          v.play().then(() => v.pause()); // Brauzer ruxsatini olish
         });
       }
 
@@ -114,9 +116,9 @@
             video.setAttribute("crossorigin", "anonymous");
             video.setAttribute("playsinline", "");
             video.setAttribute("webkit-playsinline", "");
-            video.muted = true; // Boshida muted turadi
+            video.muted = true; // Dastlabki yuklanish uchun shart
             assetsEl.appendChild(video);
-            videos.push(video); // Massivga yig'amiz
+            videos.push(video);
 
             const entity = document.createElement("a-entity");
             entity.setAttribute("mindar-image-target", `targetIndex: ${index}`);
@@ -130,11 +132,23 @@
             entity.appendChild(plane);
             sceneEl.appendChild(entity);
 
+            // Yonma-yon rasmlar mantiqi + Ovozli ijro
             entity.addEventListener("targetFound", () => {
-              video.play().catch(err => console.log(err));
+              // Agar boshqa video o'ynayotgan bo'lsa, uni to'xtatish
+              if (currentlyPlayingVideo && currentlyPlayingVideo !== video) {
+                currentlyPlayingVideo.pause();
+                currentlyPlayingVideo.currentTime = 0;
+              }
+
+              video.play().catch(err => console.log("Ovoz ruxsati kutilmoqda..."));
+              currentlyPlayingVideo = video;
             });
+
             entity.addEventListener("targetLost", () => {
-              video.pause();
+              if (currentlyPlayingVideo === video) {
+                video.pause();
+                currentlyPlayingVideo = null;
+              }
             });
           });
         } catch (err) {
