@@ -7,53 +7,14 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
-      
-      /* Yuklanish ekrani stili */
-      #custom-loader {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(circle, #1a1a2e 0%, #0f0f1b 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        transition: opacity 0.5s ease;
-      }
-
-      .class-name {
-        font-size: 60px;
-        font-weight: bold;
-        color: #fff;
-        text-shadow: 0 0 20px #4facfe, 0 0 40px #00f2fe;
-        animation: pulse 2s infinite;
-        margin-bottom: 20px;
-      }
-
-      .loader-text {
-        color: #aaa;
-        font-size: 14px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-      }
-
-      @keyframes pulse {
-        0% { transform: scale(1); opacity: 0.8; }
-        50% { transform: scale(1.1); opacity: 1; }
-        100% { transform: scale(1); opacity: 0.8; }
-      }
-
-      /* MindAR interfeyslarini yashirish */
-      .mindar-ui-overlay, .mindar-ui-scanning, .a-enter-vr { display: none !important; }
+      body { margin: 0; overflow: hidden; }
+      /* MindAR yuklanish va skanerlash interfeyslarini yashirish */
+      .mindar-ui-overlay { display: none !important; }
+      .mindar-ui-scanning { display: none !important; }
+      .a-enter-vr { display: none !important; }
     </style>
   </head>
   <body>
-
-    <div id="custom-loader">
-      <div class="class-name">11 "M"</div>
-    </div>
-
     <a-scene 
       mindar-image="imageTargetSrc: ./students.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
       color-space="sRGB" 
@@ -62,26 +23,17 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets id="assets-container"></a-assets>
+
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     </a-scene>
 
     <script>
       const loadAR = async () => {
-        const loader = document.querySelector('#custom-loader');
-        
+        // 2. DARXOL RUXSAT SO'RASH: Sayt ochilishi bilan kamerani so'raydi
         try {
-          // Kamera ruxsatini so'rash
           await navigator.mediaDevices.getUserMedia({ video: true });
-          
-          // Ruxsat berilgandan so'ng 1.5 soniya kutib ekranni yo'qotamiz (effekt uchun)
-          setTimeout(() => {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
-          }, 1500);
-
         } catch (err) {
-          document.querySelector('.loader-text').innerText = "Iltimos, kameraga ruxsat bering!";
-          console.warn("Kamera xatosi:", err);
+          console.warn("Kamera ruxsati rad etildi yoki xato:", err);
         }
 
         const sceneEl = document.querySelector('a-scene');
@@ -92,6 +44,7 @@
           const mapping = await response.json();
 
           mapping.forEach((item, index) => {
+            // Video yaratish
             const video = document.createElement("video");
             video.setAttribute("id", `vid-${index}`);
             video.setAttribute("src", item.video);
@@ -102,19 +55,25 @@
             video.muted = true; 
             assetsEl.appendChild(video);
 
+            // Anchor yaratish
             const entity = document.createElement("a-entity");
             entity.setAttribute("mindar-image-target", `targetIndex: ${index}`);
             
             const plane = document.createElement("a-video");
             plane.setAttribute("src", `#vid-${index}`);
             plane.setAttribute("position", "0 0 0");
+            
+            // Rasmni to'liq yopishi uchun 1x1 o'lcham
             plane.setAttribute("width", "1");
             plane.setAttribute("height", "1");
             
             entity.appendChild(plane);
             sceneEl.appendChild(entity);
 
-            entity.addEventListener("targetFound", () => video.play());
+            // Target topilganda videoni qo'yish
+            entity.addEventListener("targetFound", () => {
+                video.play().catch(e => console.error("Play error:", e));
+            });
             entity.addEventListener("targetLost", () => video.pause());
           });
         } catch (err) {
@@ -122,6 +81,7 @@
         }
       };
 
+      // Sahifa yuklanishi bilan ishga tushadi
       document.addEventListener('DOMContentLoaded', loadAR);
     </script>
   </body>
